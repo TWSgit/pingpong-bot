@@ -8,11 +8,11 @@
 
 + help
 - Available commands:\n\n
-^ pp: Request for playing.\n
-^ eop: Sign off playing.\n
-^ status: Displays the current occupancy.\n
-^ queue: Displays the waiting queue.\n
-^ help: You are reading this :)
+^ *pp*: Request for playing.\n\n
+^ *eop*: Sign off playing.\n\n
+^ *status*: Displays the current occupancy.\n\n
+^ *queue*: Displays the waiting queue.\n\n
+^ *help*: You are reading this :)
 
 + pp
 - <set status=occupied>Let's go playing!
