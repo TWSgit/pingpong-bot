@@ -102,12 +102,12 @@ function getHelp(botName) {
 	return `
 Available commands:
 ---
-**@${botName} pp**:      Reserve the table.  
-**@${botName} eop**:     Release the table.  
-**@${botName} status**:  Displays the current occupancy.  
-**@${botName} queue**:   Subscribe to the waiting queue
-**@${botName} dequeue**: Unsubscribe from the waiting queue
-**@${botName} help**:    You are reading this :)
+**pp**:      Reserve the table.\n
+**eop**:     Release the table.\n
+**status**:  Displays the current occupancy.\n
+**queue**:   Subscribe to the waiting queue\n
+**dequeue**: Unsubscribe from the waiting queue\n
+**help**:    You are reading this :)
 `;
 }
 
@@ -130,8 +130,8 @@ Current player: **${currentPlayer}**${rest}`;
 	return response;
 }
 
-function generalReply(botName) {
-	return `Please use 'help' for available commands.`;
+function generalReply(msg, botName) {
+	return `I don't understand '${msg}'. Please use 'help' for available commands.`;
 }
 
 function getReply(message) {
@@ -157,7 +157,7 @@ function getReply(message) {
 		case 'help'     : reply = getHelp(botName); break;
 		case 's'        :
 		case 'status'   : reply = getStatus(); break;
-		default         : reply = generalReply(botName);
+		default         : reply = generalReply(messageText, botName);
 	}
 
 	return reply;
