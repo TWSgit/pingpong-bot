@@ -1,3 +1,5 @@
+/* global process, require */
+
 var restify = require('restify');
 var builder = require('botbuilder');
 
@@ -7,91 +9,109 @@ var builder = require('botbuilder');
 
 // Create chat bot
 var connector = new builder.ChatConnector({
-    appId: process.env.appId || null,
-    appPassword: process.env.appSecret || null
+	appId:       process.env.appId || null,
+	appPassword: process.env.appSecret || null
 });
 
 // Setup Restify Server
 var server = restify.createServer(),
-	port = process.env.port || process.env.PORT || 3978;
+    port   = process.env.port || process.env.PORT || 3978;
 
 server.listen(port, function () {
-   console.log('%s listening to %s', server.name, server.url);
+	console.log('%s listening to %s', server.name, server.url);
 });
 
 server.post('/api/messages', connector.listen());
 
 server.get(/\/img\/?.*/, restify.serveStatic({
-  directory: './public'
+	directory: './public'
 }));
 
 server.get('/terms', restify.serveStatic({
-  directory: './public',
-  default: 'index.html'
+	directory: './public',
+	default:   'index.html'
 }));
 
 server.get('/privacy', restify.serveStatic({
-  directory: './public',
-  default: 'index.html'
+	directory: './public',
+	default:   'index.html'
 }));
 
 
 //=========================================================
 // Bots Dialogs
 //=========================================================
-var chatBot = new builder.UniversalBot(connector),
-	queue = [],
-	status = 'free',
-	currentPlayer = '',
-	nextPlayer = '';
+var chatBot       = new builder.UniversalBot(connector),
+    queue         = [],
+    status        = 'free',
+    currentPlayer = '';
 
-function setPP(userName) {
-	status = 'occupied';
-
-	return `Let's play!`;
-}
-
-function setEOP(userName) {
-	status = 'free';
-
-	return `Game over.`;
-}
-
-function subscribe(userName) {
+function setPP(userName, sender) {
 	var queueIndex = queue.indexOf(userName),
-		response = '';
+	    name       = userName === sender ? 'You are' : `${userName} is`,
+	    response   = '',
+	    rest       = '',
+	    nextPlayer;
 
 	if (queueIndex !== -1) {
-		response = `You are #${queueIndex + 1} on the list already!  \n`;
+		response += `${name} #${queueIndex + 1} on the list already!  \n\n`;
 	} else {
 		queue.push(userName);
 	}
 
-	status = 'occupied';
+	status        = 'occupied';
 	currentPlayer = queue[0];
-	nextPlayer = queue[1];
 
-	response += 'Current queue: ' + queue.join(', ');
+	if (currentPlayer === userName) {
+		response = `${name} playing right now!`;
+	} else {
+		if (queue.length > 1) {
+			rest = `  \nWaiting: ` + queue.slice(1).join(', ');
+		}
+
+		nextPlayer = currentPlayer === sender ? `You` : currentPlayer;
+
+		response += `Current player: **${nextPlayer}**${rest}`;
+	}
 
 	return response;
 }
 
-function unsubscribe(userName) {
+function setEOP(userName, sender) {
 	var queueIndex = queue.indexOf(userName),
-		response = '';
+	    name       = userName === sender ? 'You are' : `${userName} is`,
+	    response   = '',
+	    rest       = '',
+	    nextPlayer = '';
 
 	if (queueIndex !== -1) {
 		queue.splice(queueIndex, 1);
-		response = `You're removed from the list.`
+
+		if (userName === currentPlayer) {
+			response = `${userName} has finished the game.`
+		} else {
+			response = `${name} removed from the list.`
+		}
+
 	} else {
-		response = `You're not on the list!`;
+		response = `${name} not on the list!`;
 	}
 
 	if (queue.length < 1) {
 		status = 'free';
+
+		response += `\n\nNobody is playing. The table is **${status}**`;
+
 	} else {
 		currentPlayer = queue[0];
-		nextPlayer = queue[1];
+
+		nextPlayer = currentPlayer === sender ? `You` : currentPlayer;
+
+		if (queue.length > 1) {
+			rest = `  \nWaiting: ` + queue.slice(1).join(', ');
+		}
+
+		response += `\n\nCurrent player: **${nextPlayer}**${rest}`;
 	}
 
 	return response;
@@ -102,62 +122,83 @@ function getHelp(botName) {
 	return `
 Available commands:
 ---
-**pp**:      Reserve the table.\n
-**eop**:     Release the table.\n
-**status**:  Displays the current occupancy.\n
-**queue**:   Subscribe to the waiting queue\n
-**dequeue**: Unsubscribe from the waiting queue\n
-**help**:    You are reading this :)
+**help**:    You are reading this :)  \n
+**status**:  Displays the current occupancy.  \n
+**pp [username]**:      Reserve the table / Subscribe to the wating queue.  \n
+**eop [username]**:     Release the table / Unsubscribe from the wating queue.  \n
+
+_[username] - optional, if you want to manage other users in the queue_
+
+##### (Skype Bots are compatible since v7.26.0.101 or web client!)
 `;
 }
 
-function getStatus() {
+function getStatus(sender) {
 	var response,
-		rest = '';
+	    name = currentPlayer === sender ? 'You' : currentPlayer,
+	    rest = '';
 
 	if (status === 'free') {
+
 		response = `Table is **free**.`;
+
 	} else {
+
 		if (queue.length > 1) {
-			rest = `  \nQueue for the table: ` + queue.slice(1).join(', ');
+			rest = `  \nWaiting: ` + queue.slice(1).join(', ');
 		}
 
-		response = `Table is **occupied**.
-
-Current player: **${currentPlayer}**${rest}`;
+		response = `Table is **occupied**.\n\nCurrent player: **${name}**${rest}`;
 	}
 
 	return response;
 }
 
-function generalReply(msg, botName) {
+function clearQueue(command, parameter) {
+	if (process.env.codeword && parameter === process.env.codeword) {
+		status = 'free';
+		queue  = [];
+		return `Queue is cleared.`;
+	} else {
+		return generalReply(command);
+	}
+}
+
+function generalReply(msg) {
 	return `I don't understand '${msg}'. Please use 'help' for available commands.`;
 }
 
 function getReply(message) {
 	var conversation = message.address.conversation.name,
-		isGroup = message.address.conversation.isGroup,
-		userName = message.user.name,
-		botName = message.address.bot.name,
-		messageText = message.text,
-		reply;
+	    isGroup      = message.address.conversation.isGroup,
+	    botName      = message.address.bot.name,
+	    sender       = message.user.name,
+	    stripBotName = new RegExp('^(?:\\s*@' + botName + '\\s+)?(\\S+)\\s*(\\S+)?', 'i'),
+	    textMatch    = message.text.trim().match(stripBotName),
+	    command      = textMatch && textMatch[1] && textMatch[1].trim().toLowerCase(),
+	    parameter    = textMatch && textMatch[2] && textMatch[2].trim(),
+	    userName     = parameter || sender,
+	    reply;
 
-	switch (messageText) {
-		case 'pp'       : reply = setPP(userName); break;
-		case 'eop'      : reply = setEOP(userName); break;
-		case 'l'        :
-		case 'list'     :
-		case 'q'        :
-		case 'queue'    : reply = subscribe(userName); break;
-		case 'u'        :
-		case 'unlist'   :
-		case 'deq'      :
-		case 'dequeue'  : reply = unsubscribe(userName); break;
-		case 'h'        :
-		case 'help'     : reply = getHelp(botName); break;
+	switch (command) {
+		case 'pp'       :
+			reply = setPP(userName, sender);
+			break;
+		case 'eop'      :
+			reply = setEOP(userName, sender);
+			break;
+		case 'help'     :
+			reply = getHelp(botName);
+			break;
 		case 's'        :
-		case 'status'   : reply = getStatus(); break;
-		default         : reply = generalReply(messageText, botName);
+		case 'status'   :
+			reply = getStatus(sender);
+			break;
+		case 'clear' :
+			reply = clearQueue(command, parameter);
+			break;
+		default         :
+			reply = generalReply(command);
 	}
 
 	return reply;
@@ -166,22 +207,24 @@ function getReply(message) {
 chatBot.dialog('/', function (session) {
 	var reply = getReply(session.message);
 
-    session.send(reply);
+	session.send(reply);
 });
 
-chatBot.on('conversationUpdate', function(convUpdate) {
-	var address = convUpdate.address,
-		membersAdded = convUpdate.membersAdded,
-		msg;
+chatBot.on('conversationUpdate', function (convUpdate) {
+	var address      = convUpdate.address,
+	    membersAdded = convUpdate.membersAdded,
+	    msg;
 
-		if (membersAdded.length > 0) {
+	if (membersAdded.length > 0) {
 
-			msg = new builder.Message().address(address).text(`
+		msg = new builder.Message().address(address).text(`
 **Welcome to the Ping-Pong chat!**
 
 Say '**@${address.bot.name} help**' to see the available commands!
+
+##### (Skype Bots are compatible since v7.26.0.101 or with the web client!)
 `);
 
-			chatBot.send(msg);
-		}
+		chatBot.send(msg);
+	}
 });
