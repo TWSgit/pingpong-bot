@@ -174,7 +174,7 @@ function getReply(message) {
 	    botName      = message.address.bot.name,
 	    sender       = message.user.name,
 	    stripBotName = new RegExp('^(?:\\s*@' + botName + '\\s+)?(\\S+)\\s*(\\S+)?', 'i'),
-	    textMatch    = message.text.trim().match(stripBotName),
+	    textMatch    = message.text.trim().replace(/(<([^>]+)>)/ig, '').match(stripBotName),
 	    command      = textMatch && textMatch[1] && textMatch[1].trim().toLowerCase(),
 	    parameter    = textMatch && textMatch[2] && textMatch[2].trim(),
 	    userName     = parameter || sender,
@@ -198,7 +198,7 @@ function getReply(message) {
 			reply = clearQueue(command, parameter);
 			break;
 		default         :
-			reply = generalReply(command);
+			reply = generalReply(message.text);
 	}
 
 	return reply;
