@@ -66,7 +66,7 @@ function setPP(userName, sender) {
 		response = `${name} playing right now!`;
 	} else {
 		if (queue.length > 1) {
-			rest = `  \nWaiting: ` + queue.slice(1).join(', ');
+			rest = `  \n\nWaiting: ` + queue.slice(1).join(', ');
 		}
 
 		nextPlayer = currentPlayer === sender ? `You` : currentPlayer;
@@ -108,7 +108,7 @@ function setEOP(userName, sender) {
 		nextPlayer = currentPlayer === sender ? `You` : currentPlayer;
 
 		if (queue.length > 1) {
-			rest = `  \nWaiting: ` + queue.slice(1).join(', ');
+			rest = `  \n\nWaiting: ` + queue.slice(1).join(', ');
 		}
 
 		response += `\n\nCurrent player: **${nextPlayer}**${rest}`;
@@ -120,8 +120,8 @@ function setEOP(userName, sender) {
 
 function getHelp(botName) {
 	return `
-Available commands:
----
+## Available commands:
+
 **help**:    You are reading this :)  \n
 **status**:  Displays the current occupancy.  \n
 **pp [username]**:      Reserve the table / Subscribe to the wating queue.  \n
@@ -145,7 +145,7 @@ function getStatus(sender) {
 	} else {
 
 		if (queue.length > 1) {
-			rest = `  \nWaiting: ` + queue.slice(1).join(', ');
+			rest = `  \n\nWaiting: ` + queue.slice(1).join(', ');
 		}
 
 		response = `Table is **occupied**.\n\nCurrent player: **${name}**${rest}`;
@@ -173,7 +173,7 @@ function getReply(message) {
 	    isGroup      = message.address.conversation.isGroup,
 	    botName      = message.address.bot.name,
 	    sender       = message.user.name,
-	    stripBotName = new RegExp('^(?:\\s*@' + botName + '\\s+)?(\\S+)\\s*(\\S+)?', 'i'),
+	    stripBotName = new RegExp('^(?:\\s*@' + botName + '\\s+)?(\\S+)\\s*(.*)?', 'i'),
 	    textMatch    = message.text.trim().replace(/(<([^>]+)>)/ig, '').match(stripBotName),
 	    command      = textMatch && textMatch[1] && textMatch[1].trim().toLowerCase(),
 	    parameter    = textMatch && textMatch[2] && textMatch[2].trim(),
