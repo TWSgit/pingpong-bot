@@ -41,7 +41,9 @@ server.get('/privacy', restify.serveStatic({
 //=========================================================
 // Bots Dialogs
 //=========================================================
-var chatBot       = new builder.UniversalBot(connector),
+var chatBot       = new builder.UniversalBot(connector, {
+						persistConversationData: true
+					}),
     queue         = [],
     status        = 'free',
     currentPlayer = '';
@@ -129,7 +131,7 @@ function getHelp(botName) {
 
 _[username] - optional, if you want to manage other users in the queue_
 
-##### (Skype Bots are compatible since v7.26.0.101 or web client!)
+##### (Skype Bots have been compatible since v7.26.0.101 or web client!)
 `;
 }
 
@@ -222,7 +224,7 @@ chatBot.on('conversationUpdate', function (convUpdate) {
 
 Say '**@${address.bot.name} help**' to see the available commands!
 
-##### (Skype Bots are compatible since v7.26.0.101 or with the web client!)
+##### (Skype Bots have been compatible since v7.26.0.101 or web client!)
 `);
 
 		chatBot.send(msg);
