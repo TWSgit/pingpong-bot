@@ -1,5 +1,6 @@
 /* global process, require */
 
+var fs      = require('fs');
 var restify = require('restify');
 var builder = require('botbuilder');
 
@@ -48,6 +49,23 @@ var chatBot       = new builder.UniversalBot(connector, {
     status        = 'free',
     currentPlayer = '';
 
+function readQueue() {
+	var fileString = fs.readFileSync('queue.txt').toString();
+
+	queue = fileString !== '' ? fileString.split("\n") : [];
+
+	if (queue.length > 0) {
+		status = 'occupied';
+		currentPlayer = queue[0];
+	} else {
+		status = 'free';
+	}
+}
+
+function saveQueue() {
+	fs.writeFileSync('queue.txt', queue.join('\n'));
+}
+
 function setPP(userName, sender) {
 	var queueIndex = queue.indexOf(userName),
 	    name       = userName === sender ? 'You are' : `${userName} is`,
@@ -75,6 +93,8 @@ function setPP(userName, sender) {
 
 		response += `Current player: **${nextPlayer}**${rest}`;
 	}
+
+	saveQueue();
 
 	return response;
 }
@@ -115,6 +135,8 @@ function setEOP(userName, sender) {
 
 		response += `\n\nCurrent player: **${nextPlayer}**${rest}`;
 	}
+
+	saveQueue();
 
 	return response;
 }
@@ -160,10 +182,13 @@ function clearQueue(command, parameter) {
 	if (process.env.codeword && parameter === process.env.codeword) {
 		status = 'free';
 		queue  = [];
+
+		saveQueue();
+
 		return `Queue is cleared.`;
-	} else {
-		return generalReply(command);
 	}
+
+	return generalReply(command);
 }
 
 function generalReply(msg) {
@@ -230,3 +255,5 @@ Say '**@${address.bot.name} help**' to see the available commands!
 		chatBot.send(msg);
 	}
 });
+
+readQueue();
