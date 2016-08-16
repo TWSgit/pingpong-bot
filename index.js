@@ -49,10 +49,8 @@ var chatBot       = new builder.UniversalBot(connector, {
     status        = 'free',
     currentPlayer = '';
 
-function readQueue() {
-	var fileString = fs.readFileSync('queue.txt').toString();
-
-	queue = fileString !== '' ? fileString.split("\n") : [];
+function readQueue(conversationData) {
+	queue = conversationData.queue || [];
 
 	if (queue.length > 0) {
 		status = 'occupied';
@@ -62,8 +60,8 @@ function readQueue() {
 	}
 }
 
-function saveQueue() {
-	fs.writeFileSync('queue.txt', queue.join('\n'));
+function saveQueue(conversationData) {
+	conversationData.queue = queue;
 }
 
 function setPP(userName, sender) {
@@ -93,8 +91,6 @@ function setPP(userName, sender) {
 
 		response += `Current player: **${nextPlayer}**${rest}`;
 	}
-
-	saveQueue();
 
 	return response;
 }
@@ -135,8 +131,6 @@ function setEOP(userName, sender) {
 
 		response += `\n\nCurrent player: **${nextPlayer}**${rest}`;
 	}
-
-	saveQueue();
 
 	return response;
 }
@@ -183,8 +177,6 @@ function clearQueue(command, parameter) {
 		status = 'free';
 		queue  = [];
 
-		saveQueue();
-
 		return `Queue is cleared.`;
 	}
 
@@ -195,17 +187,21 @@ function generalReply(msg) {
 	return `I don't understand '${msg}'. Please use 'help' for available commands.`;
 }
 
-function getReply(message) {
-	var conversation = message.address.conversation.name,
-	    isGroup      = message.address.conversation.isGroup,
-	    botName      = message.address.bot.name,
-	    sender       = message.user.name,
-	    stripBotName = new RegExp('^(?:\\s*@' + botName + '\\s+)?(\\S+)\\s*(.*)?', 'i'),
-	    textMatch    = message.text.trim().replace(/(<([^>]+)>)/ig, '').match(stripBotName),
-	    command      = textMatch && textMatch[1] && textMatch[1].trim().toLowerCase(),
-	    parameter    = textMatch && textMatch[2] && textMatch[2].trim(),
-	    userName     = parameter || sender,
+function getReply(session) {
+	var message          = session.message,
+		conversationData = session.conversationData,
+		conversation     = message.address.conversation.name,
+	    isGroup          = message.address.conversation.isGroup,
+	    botName          = message.address.bot.name,
+	    sender           = message.user.name,
+	    stripBotName     = new RegExp('^(?:\\s*@' + botName + '\\s+)?(\\S+)\\s*(.*)?', 'i'),
+	    textMatch        = message.text.trim().replace(/(<([^>]+)>)/ig, '').match(stripBotName),
+	    command          = textMatch && textMatch[1] && textMatch[1].trim().toLowerCase(),
+	    parameter        = textMatch && textMatch[2] && textMatch[2].trim(),
+	    userName         = parameter || sender,
 	    reply;
+
+	readQueue(conversationData);
 
 	switch (command) {
 		case 'pp'       :
@@ -228,11 +224,13 @@ function getReply(message) {
 			reply = generalReply(message.text);
 	}
 
+	saveQueue(conversationData);
+
 	return reply;
 }
 
 chatBot.dialog('/', function (session) {
-	var reply = getReply(session.message);
+	var reply = getReply(session);
 
 	session.send(reply);
 });
@@ -255,5 +253,3 @@ Say '**@${address.bot.name} help**' to see the available commands!
 		chatBot.send(msg);
 	}
 });
-
-readQueue();
