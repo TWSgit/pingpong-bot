@@ -200,7 +200,7 @@ function getReply(session) {
 		botName          = message.address.bot.name,
 		botId            = message.address.bot.id,
 		sender           = message.user.name,
-	    stripBotName     = new RegExp('^(?:\\s*@(?:\\(?' + botName + '|' + botId +'\\)?)' + botName + '\\s+)?(\\S+)\\s*(.*)?', 'i'),
+	    stripBotName     = new RegExp('^(?:\\s*@?\\(?(?:' + botName + '|' + botId +')\\)?\\s+)?(\\S+)\\s*(.*)?', 'i'),
 	    textMatch        = message.text.trim().replace(/(<([^>]+)>)/ig, '').match(stripBotName),
 	    command          = textMatch && textMatch[1] && textMatch[1].trim().toLowerCase(),
 	    parameter        = textMatch && textMatch[2] && textMatch[2].trim(),
